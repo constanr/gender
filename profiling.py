@@ -482,19 +482,19 @@ def predict(datapath, language, age_model, gender_model):
             author.set('age_group', age_results[i])
         author.set('gender', gender_results[i].lower())
         doc = et.ElementTree(author)
-        #doc.write(output_dir+'/'+id+'.xml')
+        doc.write(output_dir+'/'+id+'.xml')
 
-""""if __name__ == "__main__":
+if __name__ == "__main__":
     path = sys.argv[1]
     language = str(sys.argv[2])
     age_model = str(sys.argv[3])
     gender_model = str(sys.argv[4])
     output_dir = sys.argv[5]
-    predict(path, language, age_model, gender_model)"""
+    predict(path, language, age_model, gender_model)
 
-language = 'english'
+"""language = 'english'
 path = 'data/pan16-author-profiling-training-dataset-'+language+'-2016-04-25'
 features(path, language)
 train(path, language, 'gender')
 train(path, language, 'age')
-#predict(path, language)
+#predict(path, language)"""
