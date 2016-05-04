@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # # Load the dataset
-
+from __future__ import division
 from pos import count_pos
 import sentiment_feature_extraction
 import os, xml.etree.ElementTree as et, itertools
@@ -12,9 +12,9 @@ from sklearn import cross_validation, svm, linear_model, tree, ensemble, naive_b
 from sklearn.multiclass import OneVsRestClassifier
 import csv, re, clean_text, pickle
 import extract_features_from_text as extractor
-import xml.etree.ElementTree as ET
 import sys
 import docs2vecs
+
 
 def extract_targets(datapath):
     files_gender = {}
@@ -109,26 +109,30 @@ def extract_features(tweets, language, task, doc2vec):
             count = docs2vecs.extract_vector(unicode(text), model)
         else:
             emoticons = sentiment_feature_extraction.emoticons_from_dictionary(text, emot_dict)
-            if text.split()<=0.0:
-                length = len(text.split())
+            if len(text.split())>0:
+                length = float(len(text.split()))
             else:
                 length = 1.0
-            caps = ('CAPS', float(sentiment_feature_extraction.caps_words(text)))
-            elongated = ('ELONGATED', float(sentiment_feature_extraction.elonganted_words(text)))
+            print length
+            caps = ('CAPS', float(sentiment_feature_extraction.caps_words(text))/length)
+            elongated = ('ELONGATED', float(sentiment_feature_extraction.elonganted_words(text))/length)
             exclamation_interrogation_dict = sentiment_feature_extraction.exclamation_and_interrogation(text)
-            excl = ('!', exclamation_interrogation_dict['!'])
-            interr = ('?', exclamation_interrogation_dict['?'])
-            omg_count = ('OMG', len(re.findall('omg+', text, re.I)))
-            heart_count = ('<3', len(re.findall('<3+', text)))
-            lol_count = ('lol', len(re.findall('lo+l', text, re.I)))
-            lmfao_count = ('lmfao', len(re.findall('lmfa+o+', text, re.I)))
-            emoticon_count = ('EMOTCOUNT', emoticons['number_emoticons'])
-            emoticon_score = ('EMOTSCORE', emoticons['score_emoticons'])
-            mention_count = ('@COUNT', len(re.findall('@username', text)))
-            hashtag_count = ('#COUNT', len(re.findall('#', text)))
-            rt_count = ('RT', len(re.findall('RT @username', text)))
-            url_count = ('URL', len(re.findall('http[s]?://', text)))
-            pic_count = ('PIC', len(re.findall('pic.twitter.com', text)))
+            excl = ('!', float(exclamation_interrogation_dict['!'])/length)
+            interr = ('?', float(exclamation_interrogation_dict['?'])/length)
+            omg_count = ('OMG', float(len(re.findall('omg+', text, re.I)))/length)
+            heart_count = ('<3', float(len(re.findall('<3+', text)))/length)
+            lol_count = ('lol', float(len(re.findall('lo+l', text, re.I)))/length)
+            lmfao_count = ('lmfao', float(len(re.findall('lmfa+o+', text, re.I)))/length)
+            emoticon_count = ('EMOTCOUNT', float(emoticons['number_emoticons'])/length)
+            if emoticons['number_emoticons']==0:
+                emoticon_score = ('EMOTSCORE', 0.0)
+            else:
+                emoticon_score = ('EMOTSCORE', float(emoticons['score_emoticons'])/float(emoticons['number_emoticons']))
+            mention_count = ('@COUNT', float(len(re.findall('@username', text)))/length)
+            hashtag_count = ('#COUNT', float(len(re.findall('#', text)))/length)
+            rt_count = ('RT', float(len(re.findall('RT @username', text)))/length)
+            url_count = ('URL', float(len(re.findall('http[s]?://', text)))/length)
+            pic_count = ('PIC', float(len(re.findall('pic.twitter.com', text)))/length)
             avg_text_length = ('TEXTLEN', length/len(text.split('\n')))
             words_length = 0
             for word in text.split():
@@ -136,16 +140,16 @@ def extract_features(tweets, language, task, doc2vec):
             avg_word_length = ('WORDLEN', words_length/length)
             count = count_pos(text, language)
             count_dict = dict(count)
-            extrav_score = 0.0
+            """extrav_score = 0.0
             sum_tags = ['NN', 'JJ', 'IN', 'DT']
             sub_tags = ['PRP', 'VB', 'VBD', 'VBG', 'VBZ', 'VBP', 'VBN', 'RB', 'UH']
             for tag in sum_tags:
                 if count_dict.has_key(tag):
-                    extrav_score += count_dict[tag]
+                    extrav_score += count_dict[tag]*length
             for tag in sub_tags:
                 if count_dict.has_key(tag):
-                    extrav_score -= count_dict[tag]
-            extraversion = ('EXTRAV', (extrav_score+100)/2.0)
+                    extrav_score -= count_dict[tag]*length
+            extraversion = ('EXTRAV', (extrav_score+100)/2.0)"""
 
             if language == 'english':
                 bf_words = 'wife|gf|girlfriend|dw'
@@ -157,16 +161,16 @@ def extract_features(tweets, language, task, doc2vec):
                 bf_words = 'vrouw|vriendin'
                 gf_words = 'man|bf|vriend'
 
-            bf_count = ('GFCOUNT', len(re.findall(bf_words, text, re.I)))
-            gf_count = ('BFCOUNT', len(re.findall(gf_words, text, re.I)))
+            bf_count = ('GFCOUNT', len(re.findall(bf_words, text, re.I))/length)
+            gf_count = ('BFCOUNT', len(re.findall(gf_words, text, re.I))/length)
 
             count.extend((caps, elongated, excl, interr, omg_count, heart_count, lol_count, lmfao_count, emoticon_count,
                     emoticon_score, mention_count, hashtag_count, rt_count, url_count, pic_count, avg_text_length,
-                    avg_word_length, extraversion, bf_count, gf_count))
+                    avg_word_length, bf_count, gf_count))
 
             if language == 'english':
-                male_rationales = ('MALRAT', len(re.findall('bro|dude|homie', text, re.I)))
-                female_rationales = ('FEMRAT', len(re.findall('cute', text, re.I)))
+                male_rationales = ('MALRAT', len(re.findall('bro|dude|homie', text, re.I))/length)
+                female_rationales = ('FEMRAT', len(re.findall('cute', text, re.I))/length)
 
                 gender_lex_count = 0.0
                 age_lex_count = 0.0
@@ -175,12 +179,13 @@ def extract_features(tweets, language, task, doc2vec):
                         gender_lex_count += gender_lexicon[word]
                     if word in age_lexicon.keys():
                         age_lex_count += age_lexicon[word]
-                gender_lex = ('GLEX', float(gender_intercept)+gender_lex_count/length)
-                age_lex = ('ALEX', float(age_intercept)+age_lex_count/length)
+                gender_lex = ('GLEX', (float(gender_intercept)+gender_lex_count)/length)
+                age_lex = ('ALEX', (float(age_intercept)+age_lex_count)/length)
 
                 selected_features_LIWC = extractor.extract_features_text(text, dictionary_LIWC_en)
                 selected_categories_LIWC = extractor.features_to_categories(selected_features_LIWC, dictionary_LIWC_en)
-                tuples_LIWC = extractor.parse_dict_to_tuples(selected_categories_LIWC)
+                selected_categories_LIWC_normalized = {category:selected_categories_LIWC[category]/length for category in selected_categories_LIWC}
+                tuples_LIWC = extractor.parse_dict_to_tuples(selected_categories_LIWC_normalized)
 
                 count.extend((male_rationales, female_rationales, gender_lex, age_lex))
                 count.extend(tuples_LIWC)
@@ -213,6 +218,8 @@ def extract_features(tweets, language, task, doc2vec):
 
                 count.extend((pmi, male, female, smale, sfemale))
             count = sorted(count)
+            count = [(tag[0],"%.4f" % tag[1]) for tag in count]
+            print count
 
         tag_count.append(count)
         if task == 'training':
@@ -434,6 +441,8 @@ def predict(datapath, language, age_model, gender_model):
     load_lexicons()
     tweets = extract_tweets(datapath, 'predicting')
     if gender_model == 'doc2vec':
+        reload(sys)
+        sys.setdefaultencoding('UTF8')
         doc2vec_tags, gender, age = extract_features(tweets, language, 'predicting', True)
         doc2vec_final = np.array(doc2vec_tags)
     tags, gender, age = extract_features(tweets, language, 'predicting', False)
@@ -463,7 +472,7 @@ def predict(datapath, language, age_model, gender_model):
         lang = 'nl'
     for i in range(0, len(gender_results)-1):
         id = tweets[i]['fid']
-        author = ET.Element('author')
+        author = et.Element('author')
         author.set('id', id)
         author.set('type', 'XX')
         author.set('lang', lang)
@@ -472,20 +481,20 @@ def predict(datapath, language, age_model, gender_model):
         else:
             author.set('age_group', age_results[i])
         author.set('gender', gender_results[i].lower())
-        doc = ET.ElementTree(author)
-        doc.write(output_dir+'/'+id+'.xml')
+        doc = et.ElementTree(author)
+        #doc.write(output_dir+'/'+id+'.xml')
 
-if __name__ == "__main__":
+""""if __name__ == "__main__":
     path = sys.argv[1]
     language = str(sys.argv[2])
     age_model = str(sys.argv[3])
     gender_model = str(sys.argv[4])
     output_dir = sys.argv[5]
-    predict(path, language, age_model, gender_model)
+    predict(path, language, age_model, gender_model)"""
 
-"""language = 'spanish'
+language = 'english'
 path = 'data/pan16-author-profiling-training-dataset-'+language+'-2016-04-25'
 features(path, language)
 train(path, language, 'gender')
 train(path, language, 'age')
-#predict(path, language)"""
+#predict(path, language)

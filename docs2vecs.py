@@ -16,7 +16,7 @@ models_path = 'models/pan16-author-profiling-training-dataset-{}-2016-04-25/'
 models = {
     'english': 'D2Vmodel',
     'spanish': 'D2Vmodel',
-    'dutch': 'D2Vmodel'
+    'dutch': 'D2Vmodel2'
 }
 
 ###
@@ -37,6 +37,7 @@ def check_lang(lang):
 def load_model(language, models_path, models):
     if check_lang:
         path = models_path.format(language) + models[language]
+        print path
         model = Doc2Vec.load(path)
         assert model.docvecs.count > 0
         return model
